@@ -5,11 +5,11 @@
 
 
 /**
- * This file declare the main class of Project2:DijstraProject2.
- * You should implement the methods:`readFromFile`,`run1`and`run2` in Dijstra.cpp.
- * You can add anything in DijstraProject2 class to implement Project2.
+ * This file declare the main class of Project2:DijkstraProject2.
+ * You should implement the methods:`readFromFile`,`run1`and`run2` in Dijkstra.cpp.
+ * You can add anything in DijkstraProject2 class to implement Project2.
  */
-class DijstraProject2 {
+class DijkstraProject2 {
 private:
 	//You can declare your graph structure here.
 
