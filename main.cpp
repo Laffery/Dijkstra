@@ -1,17 +1,14 @@
 #include <iostream>
-#include "Dijstra.h"
-
-using namespace std;
+#include "Dijkstra.hpp"
 
 /**
  * You can use this file to test your code.
  */
 int main()
 {
-    cout << "Hello world\n";
-    // DijstraProject2 pro;
-    // pro.readFromFile();
-    // pro.run1();
-    // pro.run2();
+    DijkstraProject2 pro;
+    pro.readFromFile("input.txt");
+    pro.run1("output.txt");
+    pro.run2("output.txt");
     return 0;
 }
