@@ -23,8 +23,8 @@ using namespace std;
 class DijkstraProject2 {
 private:
 	//You can declare your graph structure here.
-	int nodeCount = 0;
-	int edgeCount = 0;
+	// int nodeCount = 0;
+	// int edgeCount = 0;
 
 	class EdgeNode{
 		private:
@@ -46,7 +46,55 @@ private:
 			void setNext(EdgeNode *n){this->next = n;}
 	};
 
-	vector<EdgeNode *> graph;
+	class Graph{
+		private:
+			int nodeCount = 0;
+			int edgeCount = 0;
+			vector<EdgeNode *> matrix;
+		public:
+			Graph(){}
+
+			Graph(int n, int e):nodeCount(n), edgeCount(e){}
+
+			~Graph(){}
+
+			int getNodeCount(){return this->nodeCount;}
+
+			void setNodeCount(int n){this->nodeCount = n;}
+
+			int getEdgeCount(){return this->edgeCount;}
+
+			void setEdgeCount(int e){this->edgeCount = e;}
+
+			vector<EdgeNode *> getMatrix(){return this->matrix;}
+
+			void setMatrix(vector<EdgeNode *> m){
+				for(int i = 0; i < m.size(); ++i)
+					this->matrix.push_back(m.at(i));
+			}
+
+			void showGraph(){
+				char comma = ',';
+				cout << nodeCount << comma << edgeCount << endl;
+
+				for(int i = 0; i < matrix.size(); ++i){
+					EdgeNode *curr = matrix.at(i);
+					int beg = curr->getKey();
+
+					while(curr->getNext() != nullptr){
+						curr = curr->getNext();
+						cout << beg << comma << curr->getKey() << comma << curr->getWeight() << endl;
+					}
+				}
+			}
+	};
+
+	// vector<EdgeNode *> graph;
+
+	// vector<vector<EdgeNode *>> graph;
+	// vector<int *> EdgeNodeCount;
+
+	vector<Graph> graphs;
 
 public:
 	
@@ -68,10 +116,12 @@ public:
 	 */
 	void run1(const char* outputFile = "output.txt");
 
+	void run1MultiGraphHelper(vector<EdgeNode *> graph, int nodeCount, int edgeCount, fstream &outfile);
+
 	/*
 	 * It's a helper function od run1, to find minimum node whose flag is false 
 	 */
-	int run1Helper(bool flag[], int dist[]){
+	int run1Helper(bool flag[], int dist[], int nodeCount){
 		int min = INF, minNode = -1;
 		for(int i = 0; i < nodeCount; ++i){
 			if(!flag[i] && dist[i] < min){
@@ -124,48 +174,71 @@ void DijkstraProject2::readFromFile(const char* inputfile)
 	cout << "readFromFile: " << inputfile << endl;
 
 	//TODO
-	bool firstLine = true;
 	ifstream infile(inputfile, ios::in);
 
 	if(!infile){
 		cout << "Can not open" << inputfile << endl;
 		return;
 	}
-
+	
+	/* Read */
 	string tmp;
 	char comma = ',';
-	while (getline(infile, tmp)){
-		if(firstLine){
-			stringstream ss(tmp);
-			ss >> nodeCount >> comma >> edgeCount;
-			
-			for(int i = 0; i < nodeCount; ++i){
-				EdgeNode *helper;
-				helper = new EdgeNode(i, 0);
-				graph.push_back(helper);
-			}
 
-			firstLine = false;
+	while (!infile.eof())
+	{	
+		int nodeCount = 0;
+		int edgeCount = 0;
+		
+		getline(infile, tmp);
+		stringstream ss(tmp);
+		ss >> nodeCount >> comma >> edgeCount;
+		// cout << nodeCount << comma << edgeCount <<endl;
+
+		Graph graph(nodeCount, edgeCount);
+		vector<EdgeNode *> matrix;
+			
+		for(int i = 0; i < nodeCount; ++i){
+			EdgeNode *helper;
+			helper = new EdgeNode(i, 0);
+			matrix.push_back(helper);
 		}
 
-		else{
+		/* Read edges */
+		while(edgeCount){
+			getline(infile, tmp);
 			int beg, end, weight;
 			stringstream ss(tmp);
 			ss >> beg >> comma >> end >> comma >> weight;
+			// cout << beg << comma << end << comma << weight <<endl;
 
 			EdgeNode *helper;
 			helper = new EdgeNode(end, weight);
 
-			EdgeNode *curr = graph.at(beg);
+			EdgeNode *curr = matrix.at(beg);
 			while(curr->getNext() != nullptr)
 			{
 				curr = curr->getNext();
 			}
 
 			curr->setNext(helper);
+
+			edgeCount--;
 		}
+
+		graph.setMatrix(matrix);
+		graphs.push_back(graph);
+
+		if(!infile.eof())
+			getline(infile, tmp);
 	}
+
 	infile.close();
+
+	for(int i = 0; i < graphs.size(); ++i){
+		graphs.at(i).showGraph();
+		cout << endl;
+	}
 }
 
 void DijkstraProject2::run1(const char* outputFile)
@@ -180,7 +253,21 @@ void DijkstraProject2::run1(const char* outputFile)
 		return;
 	}
 
+	for(int i = 0; i < graphs.size(); ++i){
+		Graph graph = graphs.at(i);
+		int nodeCount = graph.getNodeCount();
+		int edgeCount = graph.getEdgeCount();
+		vector<EdgeNode *> matrix = graph.getMatrix();
 
+		run1MultiGraphHelper(matrix, nodeCount, edgeCount, outfile);
+	}
+
+	outfile.close();
+}
+
+void DijkstraProject2::run1MultiGraphHelper(
+	vector<EdgeNode *> graph, int nodeCount, int edgeCount, fstream &outfile)
+{
 	/* first node has no out degree, so no path to n */
 	if(graph.at(0)->getNext() == nullptr){
 		outfile << "Infinite" << endl << 0 << endl <<endl;
@@ -204,7 +291,7 @@ void DijkstraProject2::run1(const char* outputFile)
 
 
 	/* Core step */
-	int currNode = run1Helper(flag, dist), endNode = nodeCount - 1;
+	int currNode = run1Helper(flag, dist, nodeCount), endNode = nodeCount - 1;
 	while(currNode != -1){
 		flag[currNode] = true;
 		
@@ -273,7 +360,7 @@ void DijkstraProject2::run1(const char* outputFile)
 			}
 		}
 
-		currNode = run1Helper(flag, dist);
+		currNode = run1Helper(flag, dist, nodeCount);
 	}
 
 
@@ -295,8 +382,6 @@ void DijkstraProject2::run1(const char* outputFile)
 	}
 
 	outfile << endl;
-
-	outfile.close();
 }
 
 void DijkstraProject2::run2(const char* outputFile)
@@ -311,30 +396,21 @@ void DijkstraProject2::run2(const char* outputFile)
 		return;
 	}
 
-	int pathNum = 0;
-
-	/* first node has no out degree, so no path to n */
-	if(graph.at(0)->getNext() == nullptr){
-		outfile << "Infinite" << endl << pathNum << endl << "end" << endl <<endl;
-		outfile.close();
-		return;
-	}
-
 	outfile.close();
 }
 
 void DijkstraProject2::freeGraph()
 {
-	for(int i = 0; i < nodeCount; ++i){
-		EdgeNode *curr = graph.at(i);
-		EdgeNode *helper;
+	// for(int i = 0; i < nodeCount; ++i){
+	// 	EdgeNode *curr = graph.at(i);
+	// 	EdgeNode *helper;
 
-		while(curr->getNext() != nullptr){
-			helper = curr;
-			curr = curr->getNext();
-			delete helper;	
-		}
-	}
+	// 	while(curr->getNext() != nullptr){
+	// 		helper = curr;
+	// 		curr = curr->getNext();
+	// 		delete helper;	
+	// 	}
+	// }
 
-	graph.clear();
+	// graph.clear();
 }
