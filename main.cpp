@@ -7,7 +7,7 @@
 int main()
 {
     DijkstraProject2 pro;
-    pro.readFromFile("input4.txt");
+    pro.readFromFile("input.txt");
     pro.run1("output.txt");
     pro.run2("output.txt");
     return 0;

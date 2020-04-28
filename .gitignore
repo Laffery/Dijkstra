@@ -3,7 +3,3 @@
 
 # Executables
 *.exe
-
-# Test data
-input*.txt
-output.txt
