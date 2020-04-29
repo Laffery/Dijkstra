@@ -406,7 +406,88 @@ void DijkstraProject2::run2(const char* outputFile)
 
 void DijkstraProject2::run2MultiGraphHelper(int index, vector<EdgeNode *> graph, int nodeCount)
 {
-	Answer ans;
+	/* Parsing graph */
+	int pathNum = 1;
+	int dist[nodeCount];
+	vector<int> *prev;// path[nodeCount];
+	prev = new vector<int>[nodeCount];
+	bool flag[nodeCount];
+	for(int i = 0; i < nodeCount; ++i){
+		dist[i] = INF;
+		prev[i].push_back(-1);
+		flag[i] = false;
+	}
+	dist[0] = 0;
+
+
+	/* Core step */
+	int currNode = run1Helper(flag, dist, nodeCount), endNode = nodeCount - 1;
+	while(currNode != -1){
+		flag[currNode] = true;
+		
+		while(currNode != endNode){
+			EdgeNode *curr = graph.at(currNode);
+			int nearNode = currNode;
+			int nearDist = INF;
+			int tmpk, tmpw;
+
+			/* Traverse all next nodes of current node */
+			while(curr->getNext() != nullptr){
+				curr = curr->getNext();
+				tmpk = curr->getKey();
+				tmpw = curr->getWeight();
+
+
+				/* If path through this node is much nearer, update distance */
+				if(dist[tmpk] > tmpw + dist[currNode])
+				{
+					dist[tmpk] = tmpw + dist[currNode];
+					pathNum -= (prev[tmpk].size() - 1);
+					prev[tmpk].clear();
+					prev[tmpk].push_back(currNode);
+				}
+				else if (dist[tmpk] == tmpw + dist[currNode]){
+					bool helper = false;
+					for(int i = 0; i < prev[tmpk].size(); ++i){
+						if(prev[tmpk].at(i) == currNode){
+							helper = true;
+							break;
+						}
+					}
+
+					if(!helper){
+						prev[tmpk].push_back(currNode);
+						pathNum++;
+					}
+				}
+
+				/* Find nearest node */
+				for(int i = 0; i < nodeCount; ++i){
+					if(!flag[i] && dist[i] < nearDist){
+						nearDist = dist[i];
+						nearNode = i;
+					}
+				}
+			}
+
+			/* out-degree is 0 */
+			if(currNode != nearNode)
+			{
+				currNode = nearNode;
+				flag[currNode] = true;
+			}
+		}
+
+		currNode = run1Helper(flag, dist, nodeCount);
+	}
+
+
+	/* output result */
+	vector<stack<int>> Spath;
+	stack<int> path;
+	findAllPath(Spath, prev, endNode, path);
+
+	Answer ans(dist[endNode], pathNum, Spath);
 	graphs.at(index).setAnswer(1, ans);
 }
 
