@@ -23,8 +23,6 @@ using namespace std;
 class DijkstraProject2 {
 private:
 	//You can declare your graph structure here.
-	// int nodeCount = 0;
-	// int edgeCount = 0;
 
 	class EdgeNode{
 		private:
@@ -46,11 +44,45 @@ private:
 			void setNext(EdgeNode *n){this->next = n;}
 	};
 
+	class Answer{
+		private:
+			int SDist = -1;
+			int pathNum = 0;
+			vector<stack<int>> Spath;
+		
+		public:
+			Answer(){}
+			Answer(int s, int p, vector<stack<int>> sp){
+				this->SDist = s;
+				this->pathNum = p;
+				for(int i = 0; i < sp.size(); ++i)
+					Spath.push_back(sp.at(i));
+			}
+
+			~Answer(){};
+
+			void outputAnswer(fstream &outfile){
+				outfile << SDist << endl << pathNum << endl;
+				for(int i = 0; i < pathNum; ++i){
+					outfile << Spath.at(i).top();
+					Spath.at(i).pop();
+
+					while(!Spath.at(i).empty()){
+						outfile << "," << Spath.at(i).top();
+						Spath.at(i).pop();
+					}
+					outfile << endl;
+				}
+			}
+	};
+
 	class Graph{
 		private:
 			int nodeCount = 0;
 			int edgeCount = 0;
 			vector<EdgeNode *> matrix;
+			Answer answer[2];
+
 		public:
 			Graph(){}
 
@@ -87,12 +119,12 @@ private:
 					}
 				}
 			}
+
+			void setAnswer(int index, Answer ans){this->answer[index] = ans;}
+
+			void getAnswer(int index, fstream &outfile){this->answer[index].outputAnswer(outfile);}
 	};
 
-	// vector<EdgeNode *> graph;
-
-	// vector<vector<EdgeNode *>> graph;
-	// vector<int *> EdgeNodeCount;
 
 	vector<Graph> graphs;
 
@@ -100,9 +132,7 @@ public:
 	
 	DijkstraProject2(){}
 
-	~DijkstraProject2(){
-		freeGraph();
-	}
+	~DijkstraProject2(){}
 
 	/*
 	 * Read graph from Param:`inputfile`.
@@ -116,38 +146,17 @@ public:
 	 */
 	void run1(const char* outputFile = "output.txt");
 
-	void run1MultiGraphHelper(vector<EdgeNode *> graph, int nodeCount, int edgeCount, fstream &outfile);
+	void run1MultiGraphHelper(int index, vector<EdgeNode *> graph, int nodeCount);
 
 	/*
 	 * It's a helper function od run1, to find minimum node whose flag is false 
 	 */
-	int run1Helper(bool flag[], int dist[], int nodeCount){
-		int min = INF, minNode = -1;
-		for(int i = 0; i < nodeCount; ++i){
-			if(!flag[i] && dist[i] < min){
-				min = dist[i];
-				minNode = i;
-			}
-		}
-
-		return minNode;
-	}
+	int run1Helper(bool flag[], int dist[], int nodeCount);
 
 	/* 
 	 * Find all shortest paths
 	 */
-	void findAllPath(vector<stack<int>> &paths, vector<int> *prev, int node, stack<int> path){
-		path.push(node);
-
-		if(prev[node].at(0) == -1){
-			paths.push_back(path);
-			return;
-		}
-
-		for(int i = 0; i < prev[node].size(); ++i){
-			findAllPath(paths, prev, prev[node].at(i), path);
-		}
-	}
+	void findAllPath(vector<stack<int>> &paths, vector<int> *prev, int node, stack<int> path);
 
 	/*
 	 * Part 2, find the monotonically increasing path to finish Part 2
@@ -156,10 +165,9 @@ public:
 	 */
 	void run2(const char* outputFile = "output.txt");
 
-	/* 
-	 * To free the graph
-	 */
-	void freeGraph();
+	void run2MultiGraphHelper(int index, vector<EdgeNode *> graph, int nodeCount);
+
+	void ShowAnswer(const char* outputFile = "output.txt");
 
 };
 
@@ -234,11 +242,6 @@ void DijkstraProject2::readFromFile(const char* inputfile)
 	}
 
 	infile.close();
-
-	for(int i = 0; i < graphs.size(); ++i){
-		graphs.at(i).showGraph();
-		cout << endl;
-	}
 }
 
 void DijkstraProject2::run1(const char* outputFile)
@@ -256,26 +259,16 @@ void DijkstraProject2::run1(const char* outputFile)
 	for(int i = 0; i < graphs.size(); ++i){
 		Graph graph = graphs.at(i);
 		int nodeCount = graph.getNodeCount();
-		int edgeCount = graph.getEdgeCount();
 		vector<EdgeNode *> matrix = graph.getMatrix();
 
-		run1MultiGraphHelper(matrix, nodeCount, edgeCount, outfile);
+		run1MultiGraphHelper(i, matrix, nodeCount);
 	}
 
 	outfile.close();
 }
 
-void DijkstraProject2::run1MultiGraphHelper(
-	vector<EdgeNode *> graph, int nodeCount, int edgeCount, fstream &outfile)
+void DijkstraProject2::run1MultiGraphHelper(int index, vector<EdgeNode *> graph, int nodeCount)
 {
-	/* first node has no out degree, so no path to n */
-	if(graph.at(0)->getNext() == nullptr){
-		outfile << "Infinite" << endl << 0 << endl <<endl;
-		outfile.close();
-		return;
-	}
-
-
 	/* Parsing graph */
 	int pathNum = 1;
 	int dist[nodeCount];
@@ -307,19 +300,16 @@ void DijkstraProject2::run1MultiGraphHelper(
 				tmpk = curr->getKey();
 				tmpw = curr->getWeight();
 
-				// cout << currNode << "(" << dist[currNode] << "): " << tmpk << endl;
 
 				/* If path through this node is much nearer, update distance */
 				if(dist[tmpk] > tmpw + dist[currNode])
 				{
 					dist[tmpk] = tmpw + dist[currNode];
-					// cout << tmpk << " :>" << dist[tmpk] << endl;
 					pathNum -= (prev[tmpk].size() - 1);
 					prev[tmpk].clear();
 					prev[tmpk].push_back(currNode);
 				}
 				else if (dist[tmpk] == tmpw + dist[currNode]){
-					// cout << tmpk << " :=\n";
 					bool helper = false;
 					for(int i = 0; i < prev[tmpk].size(); ++i){
 						if(prev[tmpk].at(i) == currNode){
@@ -336,20 +326,11 @@ void DijkstraProject2::run1MultiGraphHelper(
 
 				/* Find nearest node */
 				for(int i = 0; i < nodeCount; ++i){
-					// cout << i <<"(" << flag[i] << ") ";
-					// if(dist[i] == INF)
-					// 	cout << "INF,";
-					// else
-					// 	cout << dist[i] << ",";
-					
-
 					if(!flag[i] && dist[i] < nearDist){
 						nearDist = dist[i];
 						nearNode = i;
 					}
 				}
-				// cout << endl << currNode << "(" << dist[currNode] << "), " 
-				// 	<< nearNode << "(" << dist[nearNode] << ")\n";
 			}
 
 			/* out-degree is 0 */
@@ -365,23 +346,39 @@ void DijkstraProject2::run1MultiGraphHelper(
 
 
 	/* output result */
-	outfile << dist[endNode] << endl << pathNum << endl;
 	vector<stack<int>> Spath;
 	stack<int> path;
 	findAllPath(Spath, prev, endNode, path);
 
-	for(int i = 0; i < pathNum; ++i){
-		outfile << Spath.at(i).top();
-		Spath.at(i).pop();
+	Answer ans(dist[endNode], pathNum, Spath);
+	graphs.at(index).setAnswer(0, ans);
+}
 
-		while(!Spath.at(i).empty()){
-			outfile << "," << Spath.at(i).top();
-			Spath.at(i).pop();
+int DijkstraProject2::run1Helper(bool flag[], int dist[], int nodeCount)
+{
+	int min = INF, minNode = -1;
+	for(int i = 0; i < nodeCount; ++i){
+		if(!flag[i] && dist[i] < min){
+			min = dist[i];
+			minNode = i;
 		}
-		outfile << endl;
 	}
 
-	outfile << endl;
+	return minNode;
+}
+
+void DijkstraProject2::findAllPath(vector<stack<int>> &paths, vector<int> *prev, int node, stack<int> path)
+{
+	path.push(node);
+
+	if(prev[node].at(0) == -1){
+		paths.push_back(path);
+		return;
+	}
+
+	for(int i = 0; i < prev[node].size(); ++i){
+		findAllPath(paths, prev, prev[node].at(i), path);
+	}
 }
 
 void DijkstraProject2::run2(const char* outputFile)
@@ -396,21 +393,47 @@ void DijkstraProject2::run2(const char* outputFile)
 		return;
 	}
 
+	for(int i = 0; i < graphs.size(); ++i){
+		Graph graph = graphs.at(i);
+		int nodeCount = graph.getNodeCount();
+		vector<EdgeNode *> matrix = graph.getMatrix();
+
+		run2MultiGraphHelper(i, matrix, nodeCount);
+	}
+
 	outfile.close();
 }
 
-void DijkstraProject2::freeGraph()
+void DijkstraProject2::run2MultiGraphHelper(int index, vector<EdgeNode *> graph, int nodeCount)
 {
-	// for(int i = 0; i < nodeCount; ++i){
-	// 	EdgeNode *curr = graph.at(i);
-	// 	EdgeNode *helper;
+	Answer ans;
+	graphs.at(index).setAnswer(1, ans);
+}
 
-	// 	while(curr->getNext() != nullptr){
-	// 		helper = curr;
-	// 		curr = curr->getNext();
-	// 		delete helper;	
-	// 	}
-	// }
+void DijkstraProject2::ShowAnswer(const char* outputFile)
+{
 
-	// graph.clear();
+	fstream outfile(outputFile, ios::out | ios::app);
+	if(!outfile){
+		cout << "Can not open file " << outputFile << endl;
+		outfile.close();
+		return;
+	}
+
+	int gsize = graphs.size();
+
+	for(int i = 0; i < gsize; ++i){
+		graphs.at(i).getAnswer(0, outfile);
+		outfile << endl;
+		graphs.at(i).getAnswer(1, outfile);
+		
+		if(i < gsize - 1){
+			outfile << "end" << endl << endl;
+		}
+		else{
+			outfile << "End";
+		}
+	}
+
+	outfile.close();
 }
